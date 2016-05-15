@@ -1,2 +1,3 @@
+_build/*
 _objs/*
-popup.js
+depend.mk
