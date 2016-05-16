@@ -1,3 +1,3 @@
 _build/*
 _objs/*
-depend.mk
+ocaml_depend.mk

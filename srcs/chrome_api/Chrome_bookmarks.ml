@@ -6,21 +6,20 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/15 16:08:06 by juloo             #+#    #+#             *)
-(*   Updated: 2016/05/15 16:08:07 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/05/16 23:12:50 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 class type tree_node = object
 
-	method id			:string Js.readonly_prop
-	method parentId		:string Js.readonly_prop
-	method index		:int Js.readonly_prop
-	method url			:string Js.readonly_prop
-	method title		:string Js.readonly_prop
-	method dateAdded	:float Js.readonly_prop
-	method dateGroupModified	:float Js.readonly_prop
-	(* method unmodifiable	:Js.t Js.readonly_prop *)
-	method children		:tree_node Js.js_array Js.readonly_prop
+	method id			:Js.js_string Js.t Js.readonly_prop
+	method parentId		:Js.js_string Js.t Js.readonly_prop
+	method index		:int Js.t Js.readonly_prop
+	method url			:Js.js_string Js.t Js.readonly_prop
+	method title		:Js.js_string Js.t Js.readonly_prop
+	method dateAdded	:float Js.t Js.readonly_prop
+	method dateGroupModified	:float Js.t Js.readonly_prop
+	method children		:tree_node Js.t Js.js_array Js.t Js.readonly_prop
 
 end
 

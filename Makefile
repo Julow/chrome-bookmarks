@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/05/15 19:13:26 by juloo            ###   ########.fr        #
+#    Updated: 2016/05/17 01:24:35 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -47,28 +47,38 @@ $(JS_OF_OCAML_TARGET): $(OCAML_TARGET) | $(BUILD_DIR)
 #
 
 OCAML_DIRS			= srcs
-OCAML_FLAGS			= -g $(addprefix -I ,$(OCAML_OBJ_TREE))
-OCAML_FIND			= -package js_of_ocaml,js_of_ocaml.syntax -syntax camlp4o -linkpkg
-OCAML_DEPEND		= depend.mk
+OCAML_INCLUDES		= $(addprefix -I ,$(OCAML_OBJ_TREE))
+OCAML_FLAGS			= -g $(OCAML_INCLUDES)
+OCAML_FIND			= -package js_of_ocaml,js_of_ocaml.syntax -syntax camlp4o
+OCAML_DEPEND		= ocaml_depend.mk
 
 -include $(OCAML_DEPEND)
 
-OCAML_COMMAND		:= $(shell ocamlfind ocamlc $(OCAML_FIND) -only-show) $(OCAML_FLAGS)
-
 $(OCAML_TARGET): $(OCAML_OBJS)
-	echo $(OCAML_OBJS)
-	$(OCAML_COMMAND) -o $@ $(filter %.cmo,$(OCAML_OBJS)) && $(PRINT_SUCCESS)
+	$(OCAMLC) $(OCAML_FLAGS) -o $@ $(filter %.cmo,$(OCAML_OBJS)) && $(PRINT_SUCCESS)
 
 $(OBJS_DIR)/%.cmi: %.mli | $(OCAML_OBJ_TREE)
-	$(OCAML_COMMAND) -o $@ -c $< && $(PRINT_SUCCESS)
+	$(OCAMLC) $(OCAML_FLAGS) -o $@ -c $< && $(PRINT_SUCCESS)
 $(OBJS_DIR)/%.cmo: %.ml | $(OCAML_OBJ_TREE)
-	$(OCAML_COMMAND) -o $@ -c $< && $(PRINT_SUCCESS)
+	$(OCAMLC) $(OCAML_FLAGS) -o $@ -c $< && $(PRINT_SUCCESS)
 
 $(OCAML_OBJ_TREE): | $(OBJS_DIR)
 	mkdir -p $@
 
 $(OCAML_DEPEND):
-	DEPEND_FILE=$(OCAML_DEPEND) OBJS_DIR=$(OBJS_DIR) OCAML_DIRS=$(OCAML_DIRS) bash ocaml_depend.sh
+	(																					\
+		SRC_TREE="`find $(OCAML_DIRS) -type d`"											;\
+		SOURCES="`find $(OCAML_DIRS) -name '*.ml*' -type f`"							;\
+		INCLUDES="`for d in $$SRC_TREE; do echo "-I $$d"; done`"						;\
+		printf "OCAML_OBJS ="															;\
+		for obj in `ocamlfind ocamldep $(OCAML_FIND) -sort $$INCLUDES $$SOURCES |		\
+				tr ' ' '\n' | sed -e 's/\.ml$$/.cmo/' -e 's/\.mli$$/.cmi/'`; do			\
+			printf " \\\\\n\t%s/%s" "$(OBJS_DIR)" "$$obj"								;\
+		done ; echo																		;\
+		printf "OCAML_OBJ_TREE ="														;\
+		for d in $$SRC_TREE; do printf " %s/%s" "$(OBJS_DIR)" "$$d"; done ; echo		;\
+		printf "OCAMLC = " ; ocamlfind ocamlc $(OCAML_FIND) -linkpkg -only-show			;\
+	) > $(OCAML_DEPEND)
 
 #
 # Misc
@@ -89,7 +99,8 @@ clean:
 
 fclean: clean
 
-re: fclean all
+re: fclean
+	make
 
 .SILENT:
 .PHONY: all clean fclean re
