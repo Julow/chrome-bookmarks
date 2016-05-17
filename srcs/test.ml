@@ -6,27 +6,21 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/15 16:08:02 by juloo             #+#    #+#             *)
-(*   Updated: 2016/05/16 23:19:42 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/05/18 00:09:55 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
-let rec buildBookmarks bookmark =
-	let recChilds e childs =
-		Array.iter (fun c -> Dom.appendChild e (buildBookmarks c)) childs;
-		e
+let rec buildBookmarks bookmarks parent =
+	let iter b =
+		let div = Dom_html.createDiv Dom_html.document in
+		let title = Dom_html.createP Dom_html.document in
+		Dom.appendChild div title;
+		title##textContent <- (Js.some b##title);
+		let next childs = buildBookmarks childs div in Js.Optdef.iter b##children next;
+		Dom.appendChild parent div
 	in
-	let div = Dom_html.createDiv (Dom_html.document) in
-	let title = Dom_html.createP (Dom_html.document) in
-	Dom.appendChild div title;
-	title##textContent <- (Js.some bookmark##title);
-	recChilds (div :> Dom.node Js.t) (Js.to_array bookmark##children)
-
-let callback tree =
-	Js.Unsafe.fun_call (Js.Unsafe.js_expr "console.log")
-		[| (Js.Unsafe.inject (Array.map buildBookmarks (Js.to_array tree))) |];
-	()
+	Array.iter iter (Js.to_array bookmarks)
 
 let () =
-	Chrome_bookmarks.getTree
-		callback;
-	print_endline "lolmdr"
+	let callback tree = buildBookmarks tree Dom_html.document##body in
+	Chrome_bookmarks.getTree callback
