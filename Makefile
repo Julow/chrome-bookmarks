@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/05/17 01:24:35 by juloo            ###   ########.fr        #
+#    Updated: 2016/05/17 23:27:57 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -31,7 +31,7 @@ $(BUILD_TARGET): $(_RES_FILES) | $(JS_OF_OCAML_TARGET) $(BUILD_DIR)
 .PHONY: $(BUILD_TARGET)
 
 $(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
-	cp $< $@
+	ln -s $(abspath $<) $@
 
 #
 # Build js file
@@ -47,10 +47,9 @@ $(JS_OF_OCAML_TARGET): $(OCAML_TARGET) | $(BUILD_DIR)
 #
 
 OCAML_DIRS			= srcs
-OCAML_INCLUDES		= $(addprefix -I ,$(OCAML_OBJ_TREE))
-OCAML_FLAGS			= -g $(OCAML_INCLUDES)
+OCAML_FLAGS			+= -g $(addprefix -I ,$(OCAML_OBJ_TREE))
 OCAML_FIND			= -package js_of_ocaml,js_of_ocaml.syntax -syntax camlp4o
-OCAML_DEPEND		= ocaml_depend.mk
+OCAML_DEPEND		= $(OBJS_DIR)/ocaml_depend.mk
 
 -include $(OCAML_DEPEND)
 
@@ -65,7 +64,10 @@ $(OBJS_DIR)/%.cmo: %.ml | $(OCAML_OBJ_TREE)
 $(OCAML_OBJ_TREE): | $(OBJS_DIR)
 	mkdir -p $@
 
-$(OCAML_DEPEND):
+i: $(filter %.cmi,$(OCAML_OBJS))
+	OCAML_FLAGS=-i make $(filter %.cmo,$(OCAML_OBJS))
+
+$(OCAML_DEPEND): | $(OBJS_DIR)
 	(																					\
 		SRC_TREE="`find $(OCAML_DIRS) -type d`"											;\
 		SOURCES="`find $(OCAML_DIRS) -name '*.ml*' -type f`"							;\
