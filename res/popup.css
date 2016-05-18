@@ -1,0 +1,84 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   popup.css                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2016/05/18 12:08:11 by juloo             #+#    #+#             */
+/*   Updated: 2016/05/19 00:24:08 by juloo            ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+body
+{
+	margin: 0;
+}
+
+section
+{
+	padding: 7px 15px;
+	background: #eee;
+	border-bottom: 1px solid #bbb;
+	box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+#search_section
+{
+	min-width: 200px;
+	padding: 10px 15px 4px 15px;
+}
+
+#search_input
+{
+	width: 100%;
+	padding: 4px 5px;
+	border: 1px solid #ccc;
+	border-radius: 2px;
+	box-sizing: border-box;
+}
+
+#search_input:focus
+{
+	outline: none;
+	border-color: #aaa;
+}
+
+.label
+{
+	margin: 0;
+	text-align: right;
+	color: #777;
+}
+
+.bookmark
+{
+	color: #aaa;
+}
+
+.bookmark_label
+{
+	display: block;
+	margin: 0;
+	padding: 10px 20px;
+}
+
+.bookmark_label:hover
+{
+	background: rgba(0, 100, 200, 0.2);
+}
+
+.bookmark_folder
+{
+}
+
+.bookmark_folder > div
+{
+	margin-left: 15px;
+	display: none;
+}
+
+.bookmark_folder.open > div
+{
+	display: block;
+}
