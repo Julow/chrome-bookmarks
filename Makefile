@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/05/18 12:14:04 by juloo            ###   ########.fr        #
+#    Updated: 2016/05/20 19:23:47 by jaguillo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -31,7 +31,7 @@ $(BUILD_TARGET): $(JS_OF_OCAML_TARGET) $(_RES_FILES) | $(BUILD_DIR)
 .PHONY: $(BUILD_TARGET)
 
 $(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
-	ln -s $(abspath $<) $@ && $(PRINT_SUCCESS)
+	ln -s $(patsubst %/,../,$(dir $@)/)$< $@ && $(PRINT_SUCCESS)
 
 #
 # Build js file
