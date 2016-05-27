@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/27 10:33:57 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/05/27 14:34:47 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/05/27 17:32:57 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -25,12 +25,15 @@ val notify : 'a t -> 'a -> unit
 val join : 'a t list -> 'a t
 
 (* Repeat an observable and apply a function to events *)
-val translate : 'a t -> ('a -> 'b) -> 'b t
+val map : 'a t -> ('a -> 'b) -> 'b t
 
 (* Repeat some events of an observable depending on a predicate *)
 val filter : 'a t -> ('a -> bool) -> 'a t
 
-(* Like translate with an accumulator *)
+(* Like filter but repeat filtered out events into a second observable *)
+val split : 'a t -> ('a -> bool) -> 'a t * 'a t
+
+(* Like map with an accumulator *)
 val fold : 'a t -> 'b -> ('b -> 'a -> 'b) -> 'b t
 
 (* bonus *)

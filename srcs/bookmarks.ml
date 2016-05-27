@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 12:30:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/05/25 19:09:00 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/05/27 18:09:02 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -22,17 +22,17 @@ type t = {
 
 }
 
-module OnClickReceiver = Receiver.Make (struct type t = Js.js_string Js.t end)
+let on_click_observable = Observable.create ()
 
 let rec create dict parent_element node =
 	let element =
 		let div = Dom_html.createDiv Dom_html.document in
 		let a = Dom_html.createA Dom_html.document in
-		let onClick _ = OnClickReceiver.transmit node##id; Js._false in
+		let on_click _ = Observable.notify on_click_observable node##id; Js._false in
 		a##textContent <- (Js.some node##title);
 		Js.Optdef.case (node##url) (fun _ -> ()) (fun url -> a##href <- url);
 		a##classList##add (Js.string "bookmark_label");
-		ignore (Dom_html.addEventListener a Dom_html.Event.click (Dom_html.handler onClick) Js._false);
+		ignore (Dom_html.addEventListener a Dom_html.Event.click (Dom_html.handler on_click) Js._false);
 		Dom.appendChild div a;
 		Dom.appendChild parent_element div;
 		div##classList##add (Js.string (if Js.Optdef.test (node##url) then "bookmark" else "bookmark_folder"));

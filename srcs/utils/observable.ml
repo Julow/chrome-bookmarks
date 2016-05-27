@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/27 10:33:59 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/05/27 14:34:53 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/05/27 17:37:40 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -25,7 +25,7 @@ let join lst =
 	List.iter (fun t -> register t (notify dst)) lst;
 	dst
 
-let translate t f =
+let map t f =
 	let dst = create () in
 	register t (fun v -> notify dst (f v));
 	dst
@@ -34,6 +34,11 @@ let filter t f =
 	let dst = create () in
 	register t (fun v -> if f v then notify dst v else ());
 	dst
+
+let split t f =
+	let dst_in, dst_out = create (), create () in
+	register t (fun v -> notify (if f v then dst_in else dst_out) v);
+	dst_in, dst_out
 
 let fold t initial_acc f =
 	let dst = create () in
