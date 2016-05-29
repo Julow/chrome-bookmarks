@@ -6,7 +6,7 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/23 22:10:54 by juloo             #+#    #+#             *)
-(*   Updated: 2016/05/23 23:16:20 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/05/29 23:29:55 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -17,6 +17,8 @@ let create () = Js.Unsafe.obj [||]
 let get = Js.Unsafe.get
 let put = Js.Unsafe.set
 let del = Js.Unsafe.delete
+
+let fget d k = Js.Optdef.get (get d k) (fun () -> assert false)
 
 let has dict key = Js.Optdef.test (get dict key)
 

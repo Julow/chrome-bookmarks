@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 12:30:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/05/27 18:09:02 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/05/29 23:52:55 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -32,10 +32,15 @@ let rec create dict parent_element node =
 		a##textContent <- (Js.some node##title);
 		Js.Optdef.case (node##url) (fun _ -> ()) (fun url -> a##href <- url);
 		a##classList##add (Js.string "bookmark_label");
-		ignore (Dom_html.addEventListener a Dom_html.Event.click (Dom_html.handler on_click) Js._false);
 		Dom.appendChild div a;
 		Dom.appendChild parent_element div;
-		div##classList##add (Js.string (if Js.Optdef.test (node##url) then "bookmark" else "bookmark_folder"));
+		if Js.Optdef.test (node##url) then
+			div##classList##add (Js.string "bookmark")
+		else (
+			div##classList##add (Js.string "bookmark_folder");
+			ignore (Dom_html.addEventListener a Dom_html.Event.click
+						(Dom_html.handler on_click) Js._false)
+		);
 		div
 	in
 
@@ -57,3 +62,9 @@ let set_opened b v =
 		b.element##classList##add (open_class)
 	else
 		b.element##classList##remove (open_class)
+
+let next_open dict id =
+	None
+
+let prev_open dict id =
+	None
