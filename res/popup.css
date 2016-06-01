@@ -6,7 +6,7 @@
 /*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/05/18 12:08:11 by juloo             #+#    #+#             */
-/*   Updated: 2016/05/19 00:24:08 by juloo            ###   ########.fr       */
+/*   Updated: 2016/05/29 23:47:39 by juloo            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,4 +81,9 @@ section
 .bookmark_folder.open > div
 {
 	display: block;
+}
+
+.focus
+{
+	background: red;
 }

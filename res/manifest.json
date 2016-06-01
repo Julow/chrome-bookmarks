@@ -12,6 +12,10 @@
 		"default_popup": "popup.html"
 	},
 
+	"background": {
+		"page": "bg.html"
+	},
+
 	"commands": {
 		"_execute_browser_action": {
 			"suggested_key": {
