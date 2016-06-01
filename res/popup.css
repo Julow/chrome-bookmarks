@@ -6,7 +6,7 @@
 /*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/05/18 12:08:11 by juloo             #+#    #+#             */
-/*   Updated: 2016/05/29 23:47:39 by juloo            ###   ########.fr       */
+/*   Updated: 2016/06/02 00:03:21 by juloo            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,18 +15,13 @@ body
 	margin: 0;
 }
 
-section
+#search_section
 {
-	padding: 7px 15px;
+	padding: 10px 15px 4px 15px;
 	background: #eee;
 	border-bottom: 1px solid #bbb;
 	box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.1);
-}
-
-#search_section
-{
 	min-width: 200px;
-	padding: 10px 15px 4px 15px;
 }
 
 #search_input
@@ -42,6 +37,11 @@ section
 {
 	outline: none;
 	border-color: #aaa;
+}
+
+#bookmark_section
+{
+	padding: 15px;
 }
 
 .label
@@ -60,7 +60,7 @@ section
 {
 	display: block;
 	margin: 0;
-	padding: 10px 20px;
+	padding: 10px 0 10px 20px;
 }
 
 .bookmark_label:hover
@@ -74,7 +74,7 @@ section
 
 .bookmark_folder > div
 {
-	margin-left: 15px;
+	margin-left: 10px;
 	display: none;
 }
 
@@ -85,5 +85,5 @@ section
 
 .focus
 {
-	background: red;
+	box-shadow: 0 0 4px 1px rgba(100, 220, 255, 0.5) inset;
 }

@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/01 19:42:41 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/01 23:57:36 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -30,8 +30,12 @@ let () =
 
 	let callback tree =
 		let root_bookmarks =
+			let bookmark_section =
+				Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
+					(fun () -> assert false)
+			in
 			let iter node =
-				Bookmarks.create bookmarks (Dom_html.document##body) node
+				Bookmarks.create bookmarks bookmark_section node
 			in
 			Array.map iter (Js.to_array tree)
 		in
@@ -40,7 +44,7 @@ let () =
 		let set_focused b =
 			(!focused).Bookmarks.element##classList##remove (Js.string "focus");
 			focused := b;
-			b.Bookmarks.element##classList##remove (Js.string "focus")
+			b.Bookmarks.element##classList##add (Js.string "focus")
 		in
 		set_focused !focused;
 
@@ -52,15 +56,35 @@ let () =
 					(fun b -> Bookmarks.set_opened b (not b.Bookmarks.opened))
 
 			| Arrow_key (k)		->
-				begin match k with
-					| 39 | 40			->
-						let dir = if k = 39 then 1 else -1 in
-						set_focused (Bookmarks.next_open bookmarks !focused dir);
-						Js_utils.log dir
+				let focus_next d =
+					set_focused (Bookmarks.next_open bookmarks !focused d)
+				in
 
-					| 37				-> ()
-					| 38				-> ()
-					| _					-> Js_utils.log k; assert false
+				let focus_childs () =
+					let childs = (!focused).Bookmarks.childs in
+					Bookmarks.set_opened !focused true;
+					if (Array.length childs) > 0 then
+						set_focused (Js_dict.fget bookmarks (Array.get childs 0))
+					else
+						()
+				in
+
+				let focus_parent () =
+					if (!focused).Bookmarks.opened then
+						Bookmarks.set_opened !focused false
+					else
+						match (!focused).Bookmarks.parent_id with
+						| None				-> ()
+						| Some parent_id	->
+							set_focused (Js_dict.fget bookmarks parent_id)
+				in
+
+				begin match k with
+					| 40			-> focus_next 1
+					| 38			-> focus_next (-1)
+					| 37			-> focus_parent ()
+					| 39			-> focus_childs ()
+					| _				-> Js_utils.log k; assert false
 				end
 
 			| Search_input (s)	->
