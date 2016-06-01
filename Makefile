@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/06/01 19:23:59 by jaguillo         ###   ########.fr        #
+#    Updated: 2016/06/01 23:19:54 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -73,13 +73,15 @@ $(OCAML_DEPEND): | $(OBJS_DIR)
 		SOURCES="`find $(OCAML_DIRS) -name '*.ml*' -type f`"							;\
 		INCLUDES="`for d in $$SRC_TREE; do echo "-I $$d"; done`"						;\
 		printf "OCAML_OBJS ="															;\
-		for obj in `ocamlfind ocamldep $(OCAML_FIND) -sort $$INCLUDES $$SOURCES |		\
-				tr ' ' '\n' | sed -e 's/\.ml$$/.cmo/' -e 's/\.mli$$/.cmi/'`; do			\
-			printf " \\\\\n\t%s/%s" "$(OBJS_DIR)" "$$obj"								;\
-		done ; echo																		;\
-		printf "OCAML_OBJ_TREE ="														;\
-		for d in $$SRC_TREE; do printf " %s/%s" "$(OBJS_DIR)" "$$d"; done ; echo		;\
-		printf "OCAMLC = " ; ocamlfind ocamlc $(OCAML_FIND) -linkpkg -only-show			;\
+		for obj in `ocamlfind ocamldep $(OCAML_FIND) -sort $$INCLUDES $$SOURCES			|\
+				tr ' ' '\n' | sed -e 's/\.ml$$/.cmo/' -e 's/\.mli$$/.cmi/'`				;\
+			do printf " \\\\\n\t%s/%s" "$(OBJS_DIR)" "$$obj"; done						;\
+		printf "\nOCAML_OBJ_TREE ="														;\
+		for d in $$SRC_TREE; do printf " %s/%s" "$(OBJS_DIR)" "$$d"; done				;\
+		printf "\n\nOCAMLC = "															;\
+		ocamlfind ocamlc $(OCAML_FIND) -linkpkg -only-show ; echo						;\
+		ocamlfind ocamldep $(OCAML_FIND) -one-line $$INCLUDES $$SOURCES					|\
+			sed 's#\([^: ]\+\)#_objs/\1#g'												;\
 	) > $(OCAML_DEPEND)
 
 #
