@@ -6,13 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/05/29 23:49:01 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/01 19:42:41 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
-let log s = Js.Unsafe.fun_call (Js.Unsafe.js_expr "console.log") [| Js.Unsafe.inject s |]
-
-type event_t = Bookmark_click of Js.js_string Js.t | Arrow_key of int | Search_input of string
+type event_t =
+	Bookmark_click of Js.js_string Js.t |
+	Arrow_key of int |
+	Search_input of string
 
 let (><) a (min, max) = a >= min && a <= max
 
@@ -34,7 +35,14 @@ let () =
 			in
 			Array.map iter (Js.to_array tree)
 		in
-		let focused = ref None in
+		let focused = ref (Js_dict.fget bookmarks (Array.get root_bookmarks 0)) in
+
+		let set_focused b =
+			(!focused).Bookmarks.element##classList##remove (Js.string "focus");
+			focused := b;
+			b.Bookmarks.element##classList##remove (Js.string "focus")
+		in
+		set_focused !focused;
 
 		Observable.register root_observable (function
 			| Bookmark_click (b)	->
@@ -42,19 +50,21 @@ let () =
 				Js.Optdef.case b
 					(fun () -> assert false)
 					(fun b -> Bookmarks.set_opened b (not b.Bookmarks.opened))
+
 			| Arrow_key (k)		->
-				(match !focused with
-				| None			->
-					focused := Some (Js_dict.fget bookmarks (Array.get root_bookmarks 0));
-					(!focused).element##classList##add (Js.string "focus")
-				| Some b		->
-					b.element##classList##remove (Js.string "focus");
-					let b = next_open b in
-					focused := Some b;
-					b.element##classList##add (Js.string "focus")
-				)
+				begin match k with
+					| 39 | 40			->
+						let dir = if k = 39 then 1 else -1 in
+						set_focused (Bookmarks.next_open bookmarks !focused dir);
+						Js_utils.log dir
+
+					| 37				-> ()
+					| 38				-> ()
+					| _					-> Js_utils.log k; assert false
+				end
+
 			| Search_input (s)	->
-				log (Js.string (String.concat "" ["SEARCH: "; s]))
+				Js_utils.log (Js.string (String.concat "" ["SEARCH: "; s]))
 		);
 
 	in
