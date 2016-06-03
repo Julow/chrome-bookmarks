@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 12:30:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/01 19:39:52 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/03 11:20:39 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -67,26 +67,3 @@ let set_opened b v =
 		b.element##classList##add (open_class)
 	else
 		b.element##classList##remove (open_class)
-
-let array_find arr f =
-	let rec find i =
-		if i > (Array.length arr) then
-			-1
-		else if f arr.(i) then
-			i
-		else
-			find (i + 1)
-	in
-	find 0
-
-let next_open dict b dir =
-	match b.parent_id with
-	| None			-> b
-	| Some parent	->
-		let parent = Js_dict.fget dict parent in
-		let c_index = array_find parent.childs ((=) b.id) in
-		let c_index =
-			let c_count = Array.length parent.childs in
-			(c_index + dir + c_count) mod c_count
-		in
-		Js_dict.fget dict parent.childs.(c_index)
