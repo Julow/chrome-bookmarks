@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/06/01 23:19:54 by juloo            ###   ########.fr        #
+#    Updated: 2016/06/03 18:46:20 by jaguillo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,7 +37,7 @@ $(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
 # Build js file
 #
 
-JS_OF_OCAML_FLAGS	= --pretty --no-inline --debug-info
+JS_OF_OCAML_FLAGS	=
 
 $(JS_OF_OCAML_TARGET): $(OCAML_TARGET) | $(BUILD_DIR)
 	js_of_ocaml $(JS_OF_OCAML_FLAGS) -o $@ $< && $(PRINT_SUCCESS)

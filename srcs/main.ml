@@ -6,14 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/03 11:38:33 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/03 18:50:44 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type event_t =
-	Bookmark_click of Js.js_string Js.t |
-	Arrow_key of int |
-	Search_input of string
+	Bookmark_click of Bookmarks.folder_t
+	| Arrow_key of int
+	| Search_input of string
 
 let (><) a (min, max) = a >= min && a <= max
 
@@ -21,7 +21,7 @@ let arrow_key_observable = Observable.create ()
 
 let root_observable = Observable.join [
 	Observable.map arrow_key_observable (fun k -> Arrow_key k);
-	Observable.map Bookmarks.on_click_observable (fun id -> Bookmark_click id);
+	Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f);
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
 
@@ -37,9 +37,16 @@ let array_find arr f =
 	find 0
 
 let () =
-	let bookmarks = Js_dict.create () in
-
 	let callback tree =
+		let tree = Bookmarks.from_chrome_tree (Array.get (Js.to_array tree) 0) in
+
+		let bookmark_section =
+			Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
+				(fun () -> assert false)
+		in
+		Bookmarks.put_folder_view bookmark_section tree;
+
+(* 
 		let root_bookmarks =
 			let bookmark_section =
 				Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
@@ -79,14 +86,18 @@ let () =
 			b.Bookmarks.element##classList##add (Js.string "focus")
 		in
 		set_focused !focused;
+ *)
 
 		Observable.register root_observable (function
 			| Bookmark_click (b)	->
-				let b = Js_dict.get bookmarks b in
-				Js.Optdef.case b
-					(fun () -> assert false)
-					(fun b -> Bookmarks.set_opened b (not b.Bookmarks.opened))
+				Bookmarks.set_opened b (not b.Bookmarks.opened)
 
+			| Arrow_key (40)	->
+				Bookmarks.put_list_view bookmark_section tree
+			| Arrow_key (38)	->
+				Bookmarks.put_folder_view bookmark_section tree
+
+(* 
 			| Arrow_key (40)	->
 				set_focused (next_open !focused 1)
 			| Arrow_key (38)	->
@@ -109,6 +120,7 @@ let () =
 					set_focused (Js_dict.fget bookmarks (Array.get childs 0))
 				else
 					()
+ *)
 
 			| Arrow_key (_)		-> assert false
 
