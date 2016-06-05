@@ -6,21 +6,24 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/05 21:19:31 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/06 01:00:10 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type event_t =
 	Bookmark_click of Bookmarks.folder_t
 	| Arrow_key of int
+	| Char_key of Js.js_string Js.t
 	| Search_input of string
 
-let (><) a (min, max) = a >= min && a <= max
+let (><) (min, max) a = a >= min && a <= max
 
 let arrow_key_observable = Observable.create ()
+let char_key_observable = Observable.create ()
 
 let root_observable = Observable.join [
 	Observable.map arrow_key_observable (fun k -> Arrow_key k);
+	Observable.map char_key_observable (fun c -> Char_key c);
 	Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f);
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
@@ -37,29 +40,40 @@ let array_find arr f =
 	find 0
 
 type t = {
-	bookmarks			:Bookmarks.t array;
-	cursor				:Cursor.t;
-	bookmark_section	:Dom_html.element Js.t
+	bookmarks		:Bookmarks.t array;
+	cursor			:Cursor.t;
 }
 
 let () =
+	let bookmark_section =
+		Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
+			(fun () -> assert false)
+	in
+
 	let callback tree =
 		let t =
-			let tree = Array.get (Js.to_array tree) 0 in
-			let tree = Js.Optdef.get (tree##children) (fun () -> assert false) in
-			let tree = Array.map (Bookmarks.from_chrome_tree) (Js.to_array tree) in
-
-			let bookmark_section =
-				Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
-					(fun () -> assert false)
+			let tree =
+				let tree = Array.get (Js.to_array tree) 0 in
+				let tree = Js.Optdef.get (tree##children) (fun () -> assert false) in
+				let tree = Array.map (Bookmarks.from_chrome_tree) (Js.to_array tree) in
+				let childs b =
+					match b with
+					| Bookmarks.Folder f	-> f.Bookmarks.childs
+					| _						-> assert false
+				in
+				let bookmarks_bar = childs (tree.(0)) in
+				let other_bookmarks =
+					let b = tree.(1) in
+					if Array.length (childs b) > 0 then [| b |] else [||]
+				in
+				Array.append bookmarks_bar other_bookmarks
 			in
 
 			Array.iter (Bookmarks.put_folder_view bookmark_section) tree;
 
 			{
 				bookmarks = tree;
-				cursor = Cursor.zero;
-				bookmark_section = bookmark_section
+				cursor = Cursor.zero
 			}
 		in
 
@@ -75,8 +89,15 @@ let () =
 
 			| Arrow_key _		-> assert false
 
+			| Char_key c		->
+				ignore (Js.Unsafe.fun_call (Js.Unsafe.js_expr "console.log") [| Js.Unsafe.inject c |]);
+				t
+
 			| Search_input s	->
-				Js_utils.log (Js.string (String.concat "" ["SEARCH: "; s]));
+				if (String.length s) = 0 then
+					Array.iter (Bookmarks.put_folder_view bookmark_section) t.bookmarks
+				else
+					Array.iter (Bookmarks.put_list_view bookmark_section) t.bookmarks;
 				t
 
 		))
@@ -85,10 +106,15 @@ let () =
 	Chrome_bookmarks.getTree callback;
 
 	let on_keydown e =
-		if e##keyCode >< (37, 40) then
+		if Js.to_bool (e##shiftKey) || Js.to_bool (e##ctrlKey)
+			|| Js.to_bool (e##metaKey) || Js.to_bool (e##altKey) then
+			Js._true
+		else if (37, 40) >< e##keyCode then
 			(Observable.notify arrow_key_observable e##keyCode; Js._false)
 		else
-			Js._true
+			Js.Optdef.case (e##charCode) (fun () -> Js._true)
+				(fun c -> Observable.notify char_key_observable
+						(Js.string_constr##fromCharCode (e##keyCode)); Js._false)
 	in
 
 	ignore (Dom_html.addEventListener Dom_html.document Dom_html.Event.keydown
