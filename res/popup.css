@@ -6,7 +6,7 @@
 /*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/05/18 12:08:11 by juloo             #+#    #+#             */
-/*   Updated: 2016/06/03 18:43:03 by jaguillo         ###   ########.fr       */
+/*   Updated: 2016/06/05 20:58:30 by juloo            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,12 @@ body
 
 .bookmark_folder
 {
+}
+
+.bookmark_folder > .bookmark_label
+{
+	text-decoration: none;
+	color: black;
 }
 
 .bookmark_folder > div

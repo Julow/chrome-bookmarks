@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/06/03 18:46:20 by jaguillo         ###   ########.fr        #
+#    Updated: 2016/06/05 14:34:18 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,7 +17,10 @@ BUILD_TARGET		= build
 JS_OF_OCAML_TARGET	= $(BUILD_DIR)/popup.js
 OCAML_TARGET		= $(OBJS_DIR)/popup.byte
 
-all: $(BUILD_TARGET)
+CLEAN_FILES			=
+
+all:
+	make -j4 $(BUILD_TARGET)
 
 #
 # Build extension
@@ -26,6 +29,8 @@ all: $(BUILD_TARGET)
 RES_DIR				= res
 RES_FILES			:= $(shell find $(RES_DIR) -type f)
 _RES_FILES			= $(RES_FILES:$(RES_DIR)/%=$(BUILD_DIR)/%)
+
+CLEAN_FILES			+= $(_RES_FILES)
 
 $(BUILD_TARGET): $(JS_OF_OCAML_TARGET) $(_RES_FILES) | $(BUILD_DIR)
 .PHONY: $(BUILD_TARGET)
@@ -38,6 +43,8 @@ $(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
 #
 
 JS_OF_OCAML_FLAGS	=
+
+CLEAN_FILES			+= $(JS_OF_OCAML_TARGET)
 
 $(JS_OF_OCAML_TARGET): $(OCAML_TARGET) | $(BUILD_DIR)
 	js_of_ocaml $(JS_OF_OCAML_FLAGS) -o $@ $< && $(PRINT_SUCCESS)
@@ -52,6 +59,8 @@ OCAML_FIND			= -package js_of_ocaml,js_of_ocaml.syntax -syntax camlp4o
 OCAML_DEPEND		= $(OBJS_DIR)/ocaml_depend.mk
 
 -include $(OCAML_DEPEND)
+
+CLEAN_FILES			+= $(OCAML_TARGET) $(sort $(OCAML_OBJS) $(OCAML_OBJS:%.cmo=%.cmi)) $(OCAML_DEPEND) $(OCAML_OBJ_TREE)
 
 $(OCAML_TARGET): $(OCAML_OBJS)
 	$(OCAMLC) $(OCAML_FLAGS) -o $@ $(filter %.cmo,$(OCAML_OBJS)) && $(PRINT_SUCCESS)
@@ -69,7 +78,7 @@ i: $(filter %.cmi,$(OCAML_OBJS))
 
 $(OCAML_DEPEND): | $(OBJS_DIR)
 	(																					\
-		SRC_TREE="`find $(OCAML_DIRS) -type d`"											;\
+		SRC_TREE="`find $(OCAML_DIRS) -type d | sort -r`"								;\
 		SOURCES="`find $(OCAML_DIRS) -name '*.ml*' -type f`"							;\
 		INCLUDES="`for d in $$SRC_TREE; do echo "-I $$d"; done`"						;\
 		printf "OCAML_OBJS ="															;\
@@ -82,7 +91,7 @@ $(OCAML_DEPEND): | $(OBJS_DIR)
 		ocamlfind ocamlc $(OCAML_FIND) -linkpkg -only-show ; echo						;\
 		ocamlfind ocamldep $(OCAML_FIND) -one-line $$INCLUDES $$SOURCES					|\
 			sed 's#\([^: ]\+\)#_objs/\1#g'												;\
-	) > $(OCAML_DEPEND)
+	) > $@
 
 #
 # Misc
@@ -94,17 +103,11 @@ $(BUILD_DIR) $(OBJS_DIR):
 	mkdir $@
 
 clean:
-	-rm -f $(_RES_FILES) 2> /dev/null || true
-	-rm -f $(JS_OF_OCAML_TARGET) 2> /dev/null || true
-	-rm -f $(OCAML_TARGET) 2> /dev/null || true
-	-rm -f $(OCAML_OBJS) 2> /dev/null || true
-	-rm -f $(OCAML_DEPEND) 2> /dev/null || true
-	-rmdir -p $(OCAML_OBJ_TREE) 2> /dev/null || true
+	-rm -fd $(CLEAN_FILES) $(BUILD_DIR) $(OBJS_DIR) 2> /dev/null || true
 
 fclean: clean
 
-re: fclean
-	make
+re: fclean all
 
 .SILENT:
 .PHONY: all clean fclean re

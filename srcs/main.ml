@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/03 18:50:44 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/05 21:19:31 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -36,97 +36,50 @@ let array_find arr f =
 	in
 	find 0
 
+type t = {
+	bookmarks			:Bookmarks.t array;
+	cursor				:Cursor.t;
+	bookmark_section	:Dom_html.element Js.t
+}
+
 let () =
 	let callback tree =
-		let tree = Bookmarks.from_chrome_tree (Array.get (Js.to_array tree) 0) in
+		let t =
+			let tree = Array.get (Js.to_array tree) 0 in
+			let tree = Js.Optdef.get (tree##children) (fun () -> assert false) in
+			let tree = Array.map (Bookmarks.from_chrome_tree) (Js.to_array tree) in
 
-		let bookmark_section =
-			Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
-				(fun () -> assert false)
-		in
-		Bookmarks.put_folder_view bookmark_section tree;
-
-(* 
-		let root_bookmarks =
 			let bookmark_section =
 				Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
 					(fun () -> assert false)
 			in
-			let iter node =
-				Bookmarks.create bookmarks bookmark_section node
-			in
-			let root = Array.get (Js.to_array tree) 0 in
-			Js.Optdef.case (root##children)
-				(fun () -> [||])
-				(fun c -> Array.map iter (Js.to_array c))
-			(* Array.map iter (Js.to_array tree) *)
+
+			Array.iter (Bookmarks.put_folder_view bookmark_section) tree;
+
+			{
+				bookmarks = tree;
+				cursor = Cursor.zero;
+				bookmark_section = bookmark_section
+			}
 		in
 
-		let next_open b dir =
-			let siblings =
-				match b.Bookmarks.parent_id with
-				| None			-> root_bookmarks
-				| Some parent	->
-					let parent = Js_dict.fget bookmarks parent in
-					parent.Bookmarks.childs
-			in
-			let c_index = array_find siblings ((=) b.Bookmarks.id) in
-			let c_index =
-				let c_count = Array.length siblings in
-				(c_index + dir + c_count) mod c_count
-			in
-			Js_dict.fget bookmarks siblings.(c_index)
-		in
+		ignore (Observable.fold root_observable t (fun t -> function
+			| Bookmark_click b	->
+				Bookmarks.set_opened b (not b.Bookmarks.opened);
+				t
 
-		let focused = ref (Js_dict.fget bookmarks (Array.get root_bookmarks 0)) in
+			| Arrow_key 40		-> { t with cursor = Cursor.select_next t.bookmarks t.cursor 1 }
+			| Arrow_key 38		-> { t with cursor = Cursor.select_next t.bookmarks t.cursor (-1) }
+			| Arrow_key 37		-> { t with cursor = Cursor.select_parent t.bookmarks t.cursor }
+			| Arrow_key 39		-> { t with cursor = Cursor.select_child t.bookmarks t.cursor }
 
-		let set_focused b =
-			(!focused).Bookmarks.element##classList##remove (Js.string "focus");
-			focused := b;
-			b.Bookmarks.element##classList##add (Js.string "focus")
-		in
-		set_focused !focused;
- *)
+			| Arrow_key _		-> assert false
 
-		Observable.register root_observable (function
-			| Bookmark_click (b)	->
-				Bookmarks.set_opened b (not b.Bookmarks.opened)
+			| Search_input s	->
+				Js_utils.log (Js.string (String.concat "" ["SEARCH: "; s]));
+				t
 
-			| Arrow_key (40)	->
-				Bookmarks.put_list_view bookmark_section tree
-			| Arrow_key (38)	->
-				Bookmarks.put_folder_view bookmark_section tree
-
-(* 
-			| Arrow_key (40)	->
-				set_focused (next_open !focused 1)
-			| Arrow_key (38)	->
-				set_focused (next_open !focused (-1))
-
-			| Arrow_key (37)	->
-				if (!focused).Bookmarks.opened then
-					Bookmarks.set_opened !focused false
-				else
-					begin match (!focused).Bookmarks.parent_id with
-					| None				-> ()
-					| Some parent_id	->
-						set_focused (Js_dict.fget bookmarks parent_id)
-					end
-
-			| Arrow_key (39)	->
-				let childs = (!focused).Bookmarks.childs in
-				Bookmarks.set_opened !focused true;
-				if (Array.length childs) > 0 then
-					set_focused (Js_dict.fget bookmarks (Array.get childs 0))
-				else
-					()
- *)
-
-			| Arrow_key (_)		-> assert false
-
-			| Search_input (s)	->
-				Js_utils.log (Js.string (String.concat "" ["SEARCH: "; s]))
-		)
+		))
 
 	in
 	Chrome_bookmarks.getTree callback;

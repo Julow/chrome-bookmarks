@@ -6,13 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 12:30:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/03 18:50:34 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/05 20:57:22 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type folder_t = {
 	id				:Js.js_string Js.t;
 	element			:Dom_html.element Js.t;
+	title			:Dom_html.anchorElement Js.t;
 	mutable opened	:bool;
 	childs			:t array
 }
@@ -20,10 +21,23 @@ type folder_t = {
 and leaf_t = {
 	leaf_id			:Js.js_string Js.t;
 	leaf_element	:Dom_html.element Js.t;
+	leaf_title		:Dom_html.anchorElement Js.t;
 	url				:Js.js_string Js.t
 }
 
 and t = Folder of folder_t | Leaf of leaf_t
+
+(* getter *)
+
+let element b =
+	match b with
+	| Folder f	-> f.element
+	| Leaf l	-> l.leaf_element
+
+let title b =
+	match b with
+	| Folder f	-> f.title
+	| Leaf l	-> l.leaf_title
 
 (* on folder click observable *)
 
@@ -42,7 +56,7 @@ let rec from_chrome_tree node =
 
 	title##textContent <- (Js.some node##title);
 	title##classList##add (Js.string "bookmark_label");
-	Js.Optdef.case (node##url) ignore (fun url -> title##href <- url);
+	title##href <- (Js.Optdef.get (node##url) (fun () -> Js.string "#"));
 	Dom.appendChild div title;
 
 	let create_folder () =
@@ -50,6 +64,7 @@ let rec from_chrome_tree node =
 		let f = {
 			id = node##id;
 			element = div;
+			title = title;
 			opened = false;
 			childs = Js.Optdef.case (node##children) (fun () -> [||])
 					(fun c -> Array.map from_chrome_tree (Js.to_array c))
@@ -67,6 +82,7 @@ let rec from_chrome_tree node =
 		Leaf {
 			leaf_id = node##id;
 			leaf_element = div;
+			leaf_title = title;
 			url = url
 		}
 	in
@@ -77,11 +93,11 @@ let rec from_chrome_tree node =
 
 let rec put_folder_view parent_element node =
 	let e = match node with
-		| Folder (f)		->
+		| Folder f		->
 			f.element##classList##remove (Js.string "hidden");
 			Array.iter (put_folder_view f.element) f.childs;
 			f.element
-		| Leaf (l)			-> l.leaf_element
+		| Leaf l		-> l.leaf_element
 	in
 	Dom.appendChild parent_element e
 
@@ -89,10 +105,11 @@ let rec put_folder_view parent_element node =
 
 let rec put_list_view parent_element node =
 	match node with
-	| Folder (f)		->
+	| Folder f		->
 		f.element##classList##add (Js.string "hidden");
 		Array.iter (put_list_view parent_element) f.childs
-	| Leaf (l)			-> Dom.appendChild parent_element l.leaf_element
+	| Leaf l		->
+		Dom.appendChild parent_element l.leaf_element
 
 (* open/close a folder *)
 
