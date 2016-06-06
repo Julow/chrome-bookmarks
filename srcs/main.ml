@@ -6,14 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/06 01:00:10 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/06 22:50:26 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type event_t =
 	Bookmark_click of Bookmarks.folder_t
 	| Arrow_key of int
-	| Char_key of Js.js_string Js.t
+	| Char_key of string
 	| Search_input of string
 
 let (><) (min, max) a = a >= min && a <= max
@@ -90,7 +90,8 @@ let () =
 			| Arrow_key _		-> assert false
 
 			| Char_key c		->
-				ignore (Js.Unsafe.fun_call (Js.Unsafe.js_expr "console.log") [| Js.Unsafe.inject c |]);
+				Search_input.append c;
+				Search_input.focus ();
 				t
 
 			| Search_input s	->
@@ -107,15 +108,21 @@ let () =
 
 	let on_keydown e =
 		if Js.to_bool (e##shiftKey) || Js.to_bool (e##ctrlKey)
-			|| Js.to_bool (e##metaKey) || Js.to_bool (e##altKey) then
+			|| Js.to_bool (e##metaKey) || Js.to_bool (e##altKey)
+			|| not ((37, 40) >< e##keyCode) then
 			Js._true
-		else if (37, 40) >< e##keyCode then
-			(Observable.notify arrow_key_observable e##keyCode; Js._false)
 		else
-			Js.Optdef.case (e##charCode) (fun () -> Js._true)
-				(fun c -> Observable.notify char_key_observable
-						(Js.string_constr##fromCharCode (e##keyCode)); Js._false)
+			(Observable.notify arrow_key_observable e##keyCode; Js._false)
+	in
+
+	let on_keypress e =
+		let c = Js.to_string (Js.string_constr##fromCharCode (e##keyCode)) in
+		Observable.notify char_key_observable c;
+		Js._false
 	in
 
 	ignore (Dom_html.addEventListener Dom_html.document Dom_html.Event.keydown
-			(Dom_html.handler on_keydown) Js._false)
+			(Dom_html.handler on_keydown) Js._false);
+
+	ignore (Dom_html.addEventListener Dom_html.document Dom_html.Event.keypress
+			(Dom_html.handler on_keypress) Js._false)
