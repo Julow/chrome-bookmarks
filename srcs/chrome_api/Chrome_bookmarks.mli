@@ -6,7 +6,7 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/15 16:08:09 by juloo             #+#    #+#             *)
-(*   Updated: 2016/05/17 23:46:36 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/07 22:57:23 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -23,4 +23,10 @@ class type tree_node = object
 
 end
 
-val getTree : (tree_node Js.t Js.js_array Js.t -> unit) -> unit
+class type t = object
+
+	(* TODO: add missing functions *)
+
+	method getTree		:(tree_node Js.t Js.js_array Js.t -> unit) -> unit Js.meth
+
+end
