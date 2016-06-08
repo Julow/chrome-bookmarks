@@ -6,13 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/06 22:50:26 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/08 23:07:30 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type event_t =
 	Bookmark_click of Bookmarks.folder_t
 	| Arrow_key of int
+	| Enter_key
 	| Char_key of string
 	| Search_input of string
 
@@ -20,8 +21,10 @@ let (><) (min, max) a = a >= min && a <= max
 
 let arrow_key_observable = Observable.create ()
 let char_key_observable = Observable.create ()
+let action_observable = Observable.create ()
 
 let root_observable = Observable.join [
+	action_observable;
 	Observable.map arrow_key_observable (fun k -> Arrow_key k);
 	Observable.map char_key_observable (fun c -> Char_key c);
 	Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f);
@@ -54,7 +57,7 @@ let () =
 		let t =
 			let tree =
 				let tree = Array.get (Js.to_array tree) 0 in
-				let tree = Js.Optdef.get (tree##children) (fun () -> assert false) in
+				let tree = Js.Optdef.get tree##.children (fun () -> assert false) in
 				let tree = Array.map (Bookmarks.from_chrome_tree) (Js.to_array tree) in
 				let childs b =
 					match b with
@@ -82,16 +85,30 @@ let () =
 				Bookmarks.set_opened b (not b.Bookmarks.opened);
 				t
 
-			| Arrow_key 40		-> { t with cursor = Cursor.select_next t.bookmarks t.cursor 1 }
-			| Arrow_key 38		-> { t with cursor = Cursor.select_next t.bookmarks t.cursor (-1) }
-			| Arrow_key 37		-> { t with cursor = Cursor.select_parent t.bookmarks t.cursor }
-			| Arrow_key 39		-> { t with cursor = Cursor.select_child t.bookmarks t.cursor }
-
-			| Arrow_key _		-> assert false
+			| Arrow_key k		->
+				let f = match k with
+					| 40			-> Cursor.select_next 1
+					| 38			-> Cursor.select_next (-1)
+					| 37			-> Cursor.select_parent
+					| 39			-> Cursor.select_child
+					| _				-> assert false
+				in
+				{ t with cursor = f t.bookmarks t.cursor }
 
 			| Char_key c		->
 				Search_input.append c;
 				Search_input.focus ();
+				t
+
+			| Enter_key			->
+				begin match Cursor.get t.bookmarks t.cursor with
+				| Bookmarks.Folder _	-> ()
+				| Bookmarks.Leaf l		->
+					let props = object%js
+						val url = l.Bookmarks.url
+					end in
+					Chrome.tabs##create props ignore
+				end;
 				t
 
 			| Search_input s	->
@@ -104,19 +121,22 @@ let () =
 		))
 
 	in
-	Chrome_bookmarks.getTree callback;
+	Chrome.bookmarks##getTree callback;
 
 	let on_keydown e =
-		if Js.to_bool (e##shiftKey) || Js.to_bool (e##ctrlKey)
-			|| Js.to_bool (e##metaKey) || Js.to_bool (e##altKey)
-			|| not ((37, 40) >< e##keyCode) then
+		if Js.to_bool (e##.shiftKey) || Js.to_bool (e##.ctrlKey)
+			|| Js.to_bool (e##.metaKey) || Js.to_bool (e##.altKey) then
 			Js._true
+		else if (37, 40) >< (e##.keyCode) then
+			(Observable.notify arrow_key_observable e##.keyCode; Js._false)
+		else if (e##.keyCode) == 13 then
+			(Observable.notify action_observable Enter_key; Js._false)
 		else
-			(Observable.notify arrow_key_observable e##keyCode; Js._false)
+			Js._true
 	in
 
 	let on_keypress e =
-		let c = Js.to_string (Js.string_constr##fromCharCode (e##keyCode)) in
+		let c = Js.to_string (Js.string_constr##fromCharCode e##.keyCode) in
 		Observable.notify char_key_observable c;
 		Js._false
 	in

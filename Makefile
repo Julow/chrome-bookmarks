@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/06/05 14:34:18 by juloo            ###   ########.fr        #
+#    Updated: 2016/06/08 22:02:35 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -55,7 +55,7 @@ $(JS_OF_OCAML_TARGET): $(OCAML_TARGET) | $(BUILD_DIR)
 
 OCAML_DIRS			= srcs
 OCAML_FLAGS			+= -g $(addprefix -I ,$(OCAML_OBJ_TREE))
-OCAML_FIND			= -package js_of_ocaml,js_of_ocaml.syntax -syntax camlp4o
+OCAML_FIND			= -package js_of_ocaml,js_of_ocaml.ppx
 OCAML_DEPEND		= $(OBJS_DIR)/ocaml_depend.mk
 
 -include $(OCAML_DEPEND)

@@ -6,7 +6,7 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/06/05 21:10:12 by juloo             #+#    #+#             *)
-(*   Updated: 2016/06/05 21:18:24 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/08 22:08:23 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -14,7 +14,15 @@ type t = Node of int * t | Leaf of int
 
 let zero = Leaf 0
 
-let select_next bookmarks cursor dir =
+let rec get bookmarks = function
+	| Node (index, next)	->
+		begin match bookmarks.(index) with
+		| Bookmarks.Folder f	-> get f.Bookmarks.childs next
+		| Bookmarks.Leaf _		-> assert false
+		end
+	| Leaf index			-> bookmarks.(index)
+
+let select_next dir bookmarks cursor =
 	let rec loop bookmarks = function
 		| Node (index, next)	->
 			begin match bookmarks.(index) with
@@ -28,7 +36,7 @@ let select_next bookmarks cursor dir =
 				let len = Array.length bookmarks in
 				(index + dir + len) mod len
 			in
-			(Bookmarks.title bookmarks.(index))##focus ();
+			(Bookmarks.title bookmarks.(index))##focus;
 			Leaf index
 	in
 	loop bookmarks cursor
@@ -49,7 +57,7 @@ let rec select_parent bookmarks = function
 			| Bookmarks.Folder f	-> Bookmarks.set_opened f false
 			| Bookmarks.Leaf _		-> assert false
 			end;
-			(Bookmarks.title b)##focus ();
+			(Bookmarks.title b)##focus;
 			Leaf index
 		end
 	| Leaf _ as l			-> l
@@ -67,7 +75,7 @@ let rec select_child bookmarks = function
 		| Bookmarks.Folder f
 				when (Array.length f.Bookmarks.childs) > 0	->
 			Bookmarks.set_opened f true;
-			(Bookmarks.title f.Bookmarks.childs.(0))##focus ();
+			(Bookmarks.title f.Bookmarks.childs.(0))##focus;
 			Node (index, Leaf 0)
 		| _													->
 			prev
