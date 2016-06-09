@@ -6,7 +6,7 @@
 /*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/05/18 12:08:11 by juloo             #+#    #+#             */
-/*   Updated: 2016/06/05 20:58:30 by juloo            ###   ########.fr       */
+/*   Updated: 2016/06/09 19:51:58 by jaguillo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,11 @@ body
 {
 	margin: 0;
 }
+
+/*
+** ========================================================================== **
+** Search section
+*/
 
 #search_section
 {
@@ -33,27 +38,35 @@ body
 	box-sizing: border-box;
 }
 
-#search_input:focus
-{
-	outline: none;
-	border-color: #aaa;
-}
-
-#bookmark_section
-{
-	padding: 15px;
-}
-
-.label
+#search_section .label
 {
 	margin: 0;
 	text-align: right;
 	color: #777;
 }
 
+/*
+** ========================================================================== **
+** Bookmark section
+*/
+
+#bookmark_section
+{
+	padding: 15px;
+}
+
+/*
+** Bookmark
+*/
+
 .bookmark
 {
 	color: #aaa;
+}
+
+.bookmark:nth-child(even)
+{
+	background: #fafafa;
 }
 
 .bookmark_label
@@ -68,8 +81,18 @@ body
 	background: rgba(0, 100, 200, 0.2);
 }
 
-.bookmark_folder
+/*
+** Folder
+*/
+
+.bookmark_folder, .bookmark_folder > .bookmark
 {
+	border-left: 1px solid #eaeaea;
+}
+
+.bookmark_folder > .bookmark_label
+{
+	padding-left: 30px;
 }
 
 .bookmark_folder > .bookmark_label
@@ -80,21 +103,11 @@ body
 
 .bookmark_folder > div
 {
-	margin-left: 10px;
+	margin-left: 15px;
 	display: none;
 }
 
 .bookmark_folder.open > div
 {
 	display: block;
-}
-
-.focus
-{
-	box-shadow: 0 0 4px 1px rgba(100, 220, 255, 0.5) inset;
-}
-
-.hidden
-{
-	display: none;
 }
