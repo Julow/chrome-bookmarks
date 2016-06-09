@@ -6,14 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/08 23:07:30 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/09 19:15:26 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type event_t =
 	Bookmark_click of Bookmarks.folder_t
 	| Arrow_key of int
-	| Enter_key
+	| Enter_key | Tab_key
 	| Char_key of string
 	| Search_input of string
 
@@ -111,11 +111,15 @@ let () =
 				end;
 				t
 
+			| Tab_key			->
+				Search_input.focus ();
+				{ t with cursor = Cursor.zero }
+
 			| Search_input s	->
 				if (String.length s) = 0 then
 					Array.iter (Bookmarks.put_folder_view bookmark_section) t.bookmarks
 				else
-					Array.iter (Bookmarks.put_list_view bookmark_section) t.bookmarks;
+					Bookmarks.put_list_view (String_score.score s) bookmark_section t.bookmarks;
 				t
 
 		))
@@ -124,13 +128,19 @@ let () =
 	Chrome.bookmarks##getTree callback;
 
 	let on_keydown e =
+		let notify observable v =
+			Observable.notify observable v;
+			Js._false
+		in
 		if Js.to_bool (e##.shiftKey) || Js.to_bool (e##.ctrlKey)
 			|| Js.to_bool (e##.metaKey) || Js.to_bool (e##.altKey) then
 			Js._true
 		else if (37, 40) >< (e##.keyCode) then
-			(Observable.notify arrow_key_observable e##.keyCode; Js._false)
+			notify arrow_key_observable e##.keyCode
+		else if (e##.keyCode) == 9 then
+			notify action_observable Tab_key
 		else if (e##.keyCode) == 13 then
-			(Observable.notify action_observable Enter_key; Js._false)
+			notify action_observable Enter_key
 		else
 			Js._true
 	in

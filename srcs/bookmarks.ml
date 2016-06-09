@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 12:30:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/08 22:13:35 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/09 19:20:38 by jaguillo         ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -22,7 +22,8 @@ and leaf_t = {
 	leaf_id			:Js.js_string Js.t;
 	leaf_element	:Dom_html.element Js.t;
 	leaf_title		:Dom_html.anchorElement Js.t;
-	url				:Js.js_string Js.t
+	page_title		:string;
+	url				:string
 }
 
 and t = Folder of folder_t | Leaf of leaf_t
@@ -83,18 +84,23 @@ let rec from_chrome_tree node =
 			leaf_id = node##.id;
 			leaf_element = div;
 			leaf_title = title;
-			url = url
+			page_title = Js.to_string node##.title;
+			url = Js.to_string url
 		}
 	in
 
 	Js.Optdef.case (node##.url) create_folder create_leaf
 
+(* TODO: move *)
+let remove_element element =
+	Js.Opt.case element##.parentNode ignore (fun p -> Dom.removeChild p element)
+
 (* folder view *)
+(* TODO: move *)
 
 let rec put_folder_view parent_element node =
 	let e = match node with
 		| Folder f		->
-			f.element##.classList##remove (Js.string "hidden");
 			Array.iter (put_folder_view f.element) f.childs;
 			f.element
 		| Leaf l		-> l.leaf_element
@@ -102,14 +108,29 @@ let rec put_folder_view parent_element node =
 	Dom.appendChild parent_element e
 
 (* list view *)
+(* sort leaf nodes using the score function as key *)
 
-let rec put_list_view parent_element node =
-	match node with
-	| Folder f		->
-		f.element##.classList##add (Js.string "hidden");
-		Array.iter (put_list_view parent_element) f.childs
-	| Leaf l		->
-		Dom.appendChild parent_element l.leaf_element
+let put_list_view score parent_element nodes =
+	let score_list =
+		let rec score_list acc = function
+			| Folder f		->
+				remove_element f.element;
+				Array.fold_left score_list acc f.childs
+			| Leaf l		->
+				remove_element l.leaf_element;
+				let score = score l.page_title in
+				if score < 0 then
+					acc
+				else
+					(score, l.leaf_element) :: acc
+		in
+		Array.fold_left score_list [] nodes
+	in
+	let sorted =
+		let score_cmp (a, _) (b, _) = b - a in
+		List.sort score_cmp score_list
+	in
+	List.iter (fun (_, e) -> Dom.appendChild parent_element e) sorted
 
 (* open/close a folder *)
 
@@ -117,6 +138,6 @@ let set_opened b v =
 	let open_class = Js.string "open" in
 	b.opened <- v;
 	if v then
-		b.element##.classList##add (open_class)
+		b.element##.classList##add open_class
 	else
-		b.element##.classList##remove (open_class)
+		b.element##.classList##remove open_class
