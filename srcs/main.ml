@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/09 19:15:26 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/09 23:00:20 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -105,7 +105,7 @@ let () =
 				| Bookmarks.Folder _	-> ()
 				| Bookmarks.Leaf l		->
 					let props = object%js
-						val url = l.Bookmarks.url
+						val url = Js.string l.Bookmarks.url
 					end in
 					Chrome.tabs##create props ignore
 				end;

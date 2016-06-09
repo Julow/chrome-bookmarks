@@ -6,13 +6,25 @@
 /*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/05/18 12:08:11 by juloo             #+#    #+#             */
-/*   Updated: 2016/06/09 19:51:58 by jaguillo         ###   ########.fr       */
+/*   Updated: 2016/06/09 23:03:15 by juloo            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 body
 {
 	margin: 0;
+	font-family: Arial, sans-serif;
+}
+
+a
+{
+	text-decoration: none;
+	color: #17b;
+}
+
+a:active
+{
+	color: black;
 }
 
 /*
@@ -22,7 +34,7 @@ body
 
 #search_section
 {
-	padding: 10px 15px 4px 15px;
+	padding: 10px 15px;
 	background: #eee;
 	border-bottom: 1px solid #bbb;
 	box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.1);
@@ -52,7 +64,7 @@ body
 
 #bookmark_section
 {
-	padding: 15px;
+	padding: 10px;
 }
 
 /*
@@ -85,9 +97,9 @@ body
 ** Folder
 */
 
-.bookmark_folder, .bookmark_folder > .bookmark
+.bookmark_folder, .bookmark
 {
-	border-left: 1px solid #eaeaea;
+	border-left: 1px solid #f0f0f0;
 }
 
 .bookmark_folder > .bookmark_label
