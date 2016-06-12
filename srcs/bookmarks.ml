@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 12:30:10 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/09 19:20:38 by jaguillo         ###   ########.fr       *)
+(*   Updated: 2016/06/12 13:24:58 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -98,39 +98,44 @@ let remove_element element =
 (* folder view *)
 (* TODO: move *)
 
-let rec put_folder_view parent_element node =
-	let e = match node with
-		| Folder f		->
-			Array.iter (put_folder_view f.element) f.childs;
-			f.element
-		| Leaf l		-> l.leaf_element
+let put_folder_view parent_element root_nodes =
+	let rec loop parent_element node =
+		let e = match node with
+			| Folder f		->
+				Array.iter (loop f.element) f.childs;
+				f.element
+			| Leaf l		-> l.leaf_element
+		in
+		Dom.appendChild parent_element e
 	in
-	Dom.appendChild parent_element e
+	Array.iter (loop parent_element) root_nodes;
+	root_nodes
 
 (* list view *)
 (* sort leaf nodes using the score function as key *)
 
-let put_list_view score parent_element nodes =
+let put_list_view score parent_element root_nodes =
 	let score_list =
 		let rec score_list acc = function
 			| Folder f		->
 				remove_element f.element;
 				Array.fold_left score_list acc f.childs
-			| Leaf l		->
+			| Leaf l as b	->
 				remove_element l.leaf_element;
 				let score = score l.page_title in
 				if score < 0 then
 					acc
 				else
-					(score, l.leaf_element) :: acc
+					(score, b) :: acc
 		in
-		Array.fold_left score_list [] nodes
+		Array.fold_left score_list [] root_nodes
 	in
 	let sorted =
 		let score_cmp (a, _) (b, _) = b - a in
 		List.sort score_cmp score_list
 	in
-	List.iter (fun (_, e) -> Dom.appendChild parent_element e) sorted
+	List.iter (fun (_, b) -> Dom.appendChild parent_element (element b)) sorted;
+	Array.of_list (List.map (fun (_, b) -> b) sorted)
 
 (* open/close a folder *)
 

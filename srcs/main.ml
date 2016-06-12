@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/09 23:00:20 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/12 23:43:42 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -31,26 +31,68 @@ let root_observable = Observable.join [
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
 
-let array_find arr f =
-	let rec find i =
-		if i > (Array.length arr) then
-			-1
-		else if f arr.(i) then
-			i
-		else
-			find (i + 1)
-	in
-	find 0
-
 type t = {
+	root_bookmarks	:Bookmarks.t array;
 	bookmarks		:Bookmarks.t array;
-	cursor			:Cursor.t;
+	cursor			:Cursor.t
 }
 
 let () =
 	let bookmark_section =
 		Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
 			(fun () -> assert false)
+	in
+
+	let main_loop t event =
+		match event with
+		| Bookmark_click b	->
+			Bookmarks.set_opened b (not b.Bookmarks.opened);
+			t
+
+		| Arrow_key k		->
+			let f = match k with
+				| 40			-> Cursor.select_next 1
+				| 38			-> Cursor.select_next (-1)
+				| 37			-> Cursor.select_parent
+				| 39			-> Cursor.select_child
+				| _				-> assert false
+			in
+			{ t with cursor = f t.bookmarks t.cursor }
+
+		| Char_key c		->
+			Search_input.append c;
+			Search_input.focus ();
+			t
+
+		| Enter_key			->
+			begin match Cursor.get t.bookmarks t.cursor with
+			| Bookmarks.Folder _	-> ()
+			| Bookmarks.Leaf l		->
+				let props = object%js
+					val url = Js.string l.Bookmarks.url
+				end in
+				Chrome.tabs##create props ignore
+			end;
+			t
+
+		| Tab_key			->
+			Search_input.focus ();
+			{ t with cursor = Cursor.zero }
+
+		| Search_input s	->
+			let put_view =
+				if (String.length s) = 0 then
+					Bookmarks.put_folder_view
+				else
+					Bookmarks.put_list_view (String_score.score s)
+			in
+			let t = { t with
+				bookmarks = put_view bookmark_section t.root_bookmarks;
+				cursor = Cursor.zero
+			} in
+			Js_utils.log t;
+			t
+
 	in
 
 	let callback tree =
@@ -72,57 +114,14 @@ let () =
 				Array.append bookmarks_bar other_bookmarks
 			in
 
-			Array.iter (Bookmarks.put_folder_view bookmark_section) tree;
-
 			{
-				bookmarks = tree;
+				root_bookmarks = tree;
+				bookmarks = Bookmarks.put_folder_view bookmark_section tree;
 				cursor = Cursor.zero
 			}
 		in
 
-		ignore (Observable.fold root_observable t (fun t -> function
-			| Bookmark_click b	->
-				Bookmarks.set_opened b (not b.Bookmarks.opened);
-				t
-
-			| Arrow_key k		->
-				let f = match k with
-					| 40			-> Cursor.select_next 1
-					| 38			-> Cursor.select_next (-1)
-					| 37			-> Cursor.select_parent
-					| 39			-> Cursor.select_child
-					| _				-> assert false
-				in
-				{ t with cursor = f t.bookmarks t.cursor }
-
-			| Char_key c		->
-				Search_input.append c;
-				Search_input.focus ();
-				t
-
-			| Enter_key			->
-				begin match Cursor.get t.bookmarks t.cursor with
-				| Bookmarks.Folder _	-> ()
-				| Bookmarks.Leaf l		->
-					let props = object%js
-						val url = Js.string l.Bookmarks.url
-					end in
-					Chrome.tabs##create props ignore
-				end;
-				t
-
-			| Tab_key			->
-				Search_input.focus ();
-				{ t with cursor = Cursor.zero }
-
-			| Search_input s	->
-				if (String.length s) = 0 then
-					Array.iter (Bookmarks.put_folder_view bookmark_section) t.bookmarks
-				else
-					Bookmarks.put_list_view (String_score.score s) bookmark_section t.bookmarks;
-				t
-
-		))
+		ignore (Observable.fold root_observable t main_loop)
 
 	in
 	Chrome.bookmarks##getTree callback;
