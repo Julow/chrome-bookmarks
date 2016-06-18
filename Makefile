@@ -6,7 +6,7 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/06/08 22:02:35 by juloo            ###   ########.fr        #
+#    Updated: 2016/06/18 02:38:26 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -42,7 +42,7 @@ $(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
 # Build js file
 #
 
-JS_OF_OCAML_FLAGS	=
+JS_OF_OCAML_FLAGS	= --source-map-inline --debuginfo
 
 CLEAN_FILES			+= $(JS_OF_OCAML_TARGET)
 
