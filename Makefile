@@ -6,37 +6,74 @@
 #    By: juloo <juloo@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/05/15 16:07:55 by juloo             #+#    #+#              #
-#    Updated: 2016/06/18 02:38:26 by juloo            ###   ########.fr        #
+#    Updated: 2016/06/19 22:26:49 by juloo            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 BUILD_DIR			= _build
 OBJS_DIR			= _objs
 
+RELEASE_TARGET		= release
 BUILD_TARGET		= build
 JS_OF_OCAML_TARGET	= $(BUILD_DIR)/popup.js
 OCAML_TARGET		= $(OBJS_DIR)/popup.byte
 
 CLEAN_FILES			=
+FCLEAN_FILES		=
 
 all:
 	make -j4 $(BUILD_TARGET)
+
+#
+# Build release
+#
+
+RELEASE_FILES		=
+
+ZIP_FILE			= chrome-bookmarks.zip
+
+FCLEAN_FILES		+= $(ZIP_FILE)
+
+$(RELEASE_TARGET): fclean
+	make -j4 $(ZIP_FILE)
+.PHONY: $(RELEASE_TARGET)
+
+$(ZIP_FILE): $(BUILD_TARGET)
+	zip -q $@ $(RELEASE_FILES) && $(PRINT_SUCCESS)
 
 #
 # Build extension
 #
 
 RES_DIR				= res
-RES_FILES			:= $(shell find $(RES_DIR) -type f)
-_RES_FILES			= $(RES_FILES:$(RES_DIR)/%=$(BUILD_DIR)/%)
+RES_DEPEND			= $(OBJS_DIR)/res_depend.mk
 
-CLEAN_FILES			+= $(_RES_FILES)
+-include $(RES_DEPEND)
 
-$(BUILD_TARGET): $(JS_OF_OCAML_TARGET) $(_RES_FILES) | $(BUILD_DIR)
+RELEASE_FILES		+= $(RES_FILES)
+CLEAN_FILES			+= $(RES_FILES) $(RES_TREE) $(RES_DEPEND)
+
+$(BUILD_TARGET): $(JS_OF_OCAML_TARGET) $(RES_FILES) | $(BUILD_DIR)
 .PHONY: $(BUILD_TARGET)
 
-$(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
-	ln -s $(patsubst %/,../,$(dir $@)/)$< $@ && $(PRINT_SUCCESS)
+$(BUILD_DIR)/%: $(RES_DIR)/% | $(RES_TREE)
+	ln -s $(REL_PATH) $@ && $(PRINT_SUCCESS)
+
+$(RES_TREE): | $(BUILD_DIR)
+	mkdir -p $@
+
+$(RES_DEPEND): | $(OBJS_DIR)
+	(																					\
+		RES_TREE="`find $(RES_DIR) -mindepth 1 -type d | sort -r | tr '\n' ' '`"		;\
+		echo 'RES_TREE = $$(patsubst $(RES_DIR)/%,$(BUILD_DIR)/%,'"$$RES_TREE"')'		;\
+		RES_FILE_LIST=""																;\
+		for f in `find $(RES_DIR) -type f`; do											\
+			b="$(BUILD_DIR)/$${f##$(RES_DIR)/}"											;\
+			RES_FILE_LIST="$$RES_FILE_LIST $$b"											;\
+			p=`python -c "import os;print(os.path.relpath('$$f','$${b%/*}'))"`			;\
+			echo "$$b: REL_PATH=$$p"													;\
+		done; echo "RES_FILES =$$RES_FILE_LIST"											\
+	) > $@
 
 #
 # Build js file
@@ -44,6 +81,7 @@ $(BUILD_DIR)/%: $(RES_DIR)/% | $(BUILD_DIR)
 
 JS_OF_OCAML_FLAGS	= --source-map-inline --debuginfo
 
+RELEASE_FILES		+= $(JS_OF_OCAML_TARGET)
 CLEAN_FILES			+= $(JS_OF_OCAML_TARGET)
 
 $(JS_OF_OCAML_TARGET): $(OCAML_TARGET) | $(BUILD_DIR)
@@ -106,6 +144,7 @@ clean:
 	-rm -fd $(CLEAN_FILES) $(BUILD_DIR) $(OBJS_DIR) 2> /dev/null || true
 
 fclean: clean
+	-rm -fd $(FCLEAN_FILES)
 
 re: fclean all
 
