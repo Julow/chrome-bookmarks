@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/12 23:43:42 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/19 20:02:39 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -59,10 +59,12 @@ let () =
 			in
 			{ t with cursor = f t.bookmarks t.cursor }
 
-		| Char_key c		->
+(* 		| Char_key c		->
 			Search_input.append c;
 			Search_input.focus ();
-			t
+			t *)
+
+		| Char_key _		-> assert false (* TODO: reimplement *)
 
 		| Enter_key			->
 			begin match Cursor.get t.bookmarks t.cursor with
@@ -121,37 +123,33 @@ let () =
 			}
 		in
 
-		ignore (Observable.fold root_observable t main_loop)
+		Observable.fold root_observable t main_loop |> ignore
 
 	in
 	Chrome.bookmarks##getTree callback;
 
 	let on_keydown e =
-		let notify observable v =
-			Observable.notify observable v;
-			Js._false
-		in
-		if Js.to_bool (e##.shiftKey) || Js.to_bool (e##.ctrlKey)
-			|| Js.to_bool (e##.metaKey) || Js.to_bool (e##.altKey) then
+		if Js.Opt.case e##.target
+			(fun () -> false)
+			(fun t -> t##.id = (Js.string "search_input")) then
 			Js._true
-		else if (37, 40) >< (e##.keyCode) then
-			notify arrow_key_observable e##.keyCode
-		else if (e##.keyCode) == 9 then
-			notify action_observable Tab_key
-		else if (e##.keyCode) == 13 then
-			notify action_observable Enter_key
 		else
-			Js._true
+			let notify observable v =
+				Observable.notify observable v;
+				Js._false
+			in
+			if Js.to_bool (e##.shiftKey) || Js.to_bool (e##.ctrlKey)
+				|| Js.to_bool (e##.metaKey) || Js.to_bool (e##.altKey) then
+				Js._true
+			else if (37, 40) >< (e##.keyCode) then
+				notify arrow_key_observable e##.keyCode
+			else if (e##.keyCode) == 9 then
+				notify action_observable Tab_key
+			else if (e##.keyCode) == 13 then
+				notify action_observable Enter_key
+			else
+				Js._true
 	in
 
-	let on_keypress e =
-		let c = Js.to_string (Js.string_constr##fromCharCode e##.keyCode) in
-		Observable.notify char_key_observable c;
-		Js._false
-	in
-
-	ignore (Dom_html.addEventListener Dom_html.document Dom_html.Event.keydown
-			(Dom_html.handler on_keydown) Js._false);
-
-	ignore (Dom_html.addEventListener Dom_html.document Dom_html.Event.keypress
-			(Dom_html.handler on_keypress) Js._false)
+	Dom_html.addEventListener Dom_html.document Dom_html.Event.keydown
+		(Dom_html.handler on_keydown) Js._false |> ignore;
