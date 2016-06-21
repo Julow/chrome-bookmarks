@@ -6,27 +6,39 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/19 20:02:39 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/21 23:15:41 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 type event_t =
-	Bookmark_click of Bookmarks.folder_t
-	| Arrow_key of int
-	| Enter_key | Tab_key
+	| Bookmark_click of Bookmarks.folder_t
+	| Arrow_key of [ `Left | `Right | `Up | `Down ]
+	| Enter_key
+	| Tab_key
 	| Char_key of string
 	| Search_input of string
 
 let (><) (min, max) a = a >= min && a <= max
 
-let arrow_key_observable = Observable.create ()
-let char_key_observable = Observable.create ()
-let action_observable = Observable.create ()
+let keyboard_observable =
+	let handler e =
+		let is_input = Js.Opt.case e##.target
+			(fun () -> false)
+			(fun t -> t##.nodeName = (Js.string "INPUT"))
+		in
+		match e##.keyCode, Keys_handler.modifiers e, is_input with
+		| 38,	0,	_			-> Arrow_key `Up
+		| 40,	0,	_			-> Arrow_key `Down
+		| 37,	0,	false		-> Arrow_key `Left
+		| 39,	0,	false		-> Arrow_key `Right
+		| 9,	0,	false		-> Tab_key
+		| 13,	0,	_			-> Enter_key
+		| _						-> Keys_handler.unused ()
+	in
+	Keys_handler.observe Dom_html.document handler
 
 let root_observable = Observable.join [
-	action_observable;
-	Observable.map arrow_key_observable (fun k -> Arrow_key k);
-	Observable.map char_key_observable (fun c -> Char_key c);
+	keyboard_observable;
 	Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f);
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
@@ -51,18 +63,12 @@ let () =
 
 		| Arrow_key k		->
 			let f = match k with
-				| 40			-> Cursor.select_next 1
-				| 38			-> Cursor.select_next (-1)
-				| 37			-> Cursor.select_parent
-				| 39			-> Cursor.select_child
-				| _				-> assert false
+				| `Down			-> Cursor.select_next 1
+				| `Up			-> Cursor.select_next (-1)
+				| `Left			-> Cursor.select_parent
+				| `Right		-> Cursor.select_child
 			in
 			{ t with cursor = f t.bookmarks t.cursor }
-
-(* 		| Char_key c		->
-			Search_input.append c;
-			Search_input.focus ();
-			t *)
 
 		| Char_key _		-> assert false (* TODO: reimplement *)
 
@@ -127,29 +133,3 @@ let () =
 
 	in
 	Chrome.bookmarks##getTree callback;
-
-	let on_keydown e =
-		if Js.Opt.case e##.target
-			(fun () -> false)
-			(fun t -> t##.id = (Js.string "search_input")) then
-			Js._true
-		else
-			let notify observable v =
-				Observable.notify observable v;
-				Js._false
-			in
-			if Js.to_bool (e##.shiftKey) || Js.to_bool (e##.ctrlKey)
-				|| Js.to_bool (e##.metaKey) || Js.to_bool (e##.altKey) then
-				Js._true
-			else if (37, 40) >< (e##.keyCode) then
-				notify arrow_key_observable e##.keyCode
-			else if (e##.keyCode) == 9 then
-				notify action_observable Tab_key
-			else if (e##.keyCode) == 13 then
-				notify action_observable Enter_key
-			else
-				Js._true
-	in
-
-	Dom_html.addEventListener Dom_html.document Dom_html.Event.keydown
-		(Dom_html.handler on_keydown) Js._false |> ignore;
