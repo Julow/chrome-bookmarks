@@ -6,9 +6,11 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/21 23:15:41 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/22 22:56:06 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
+
+open Result.Type
 
 type event_t =
 	| Bookmark_click of Bookmarks.folder_t
@@ -20,13 +22,29 @@ type event_t =
 
 let (><) (min, max) a = a >= min && a <= max
 
-let keyboard_observable =
-	let handler e =
-		let is_input = Js.Opt.case e##.target
+let keydown_observable, keypress_observable =
+	let is_input e =
+		Js.Opt.case e##.target
 			(fun () -> false)
 			(fun t -> t##.nodeName = (Js.string "INPUT"))
+	in
+	let on_keypress e =
+		let r = Result.of_bool (not (is_input e))
+			&&? fun () -> Js.Optdef.case e##.charCode Result.error Result.ok
+			&&? fun c ->
+				let s = Js.string_constr##fromCharCode c |> Js.to_string in
+				let mods = Keys_handler.modifiers e in
+				if mods = Keys_handler.shift then
+					Ok (Char_key s)
+				else if mods = 0 then
+					Ok (Char_key (String.lowercase s))
+				else
+					Error ()
 		in
-		match e##.keyCode, Keys_handler.modifiers e, is_input with
+		Result.get Keys_handler.unused r
+	in
+	let on_keydown e =
+		match e##.keyCode, Keys_handler.modifiers e, is_input e with
 		| 38,	0,	_			-> Arrow_key `Up
 		| 40,	0,	_			-> Arrow_key `Down
 		| 37,	0,	false		-> Arrow_key `Left
@@ -35,10 +53,12 @@ let keyboard_observable =
 		| 13,	0,	_			-> Enter_key
 		| _						-> Keys_handler.unused ()
 	in
-	Keys_handler.observe Dom_html.document handler
+	Keys_handler.observe Dom_html.document Dom_html.Event.keydown on_keydown,
+	Keys_handler.observe Dom_html.document Dom_html.Event.keypress on_keypress
 
 let root_observable = Observable.join [
-	keyboard_observable;
+	keydown_observable;
+	keypress_observable;
 	Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f);
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
@@ -70,7 +90,10 @@ let () =
 			in
 			{ t with cursor = f t.bookmarks t.cursor }
 
-		| Char_key _		-> assert false (* TODO: reimplement *)
+		| Char_key c		->
+			Search_input.append c;
+			Search_input.focus ();
+			t
 
 		| Enter_key			->
 			begin match Cursor.get t.bookmarks t.cursor with
@@ -94,12 +117,10 @@ let () =
 				else
 					Bookmarks.put_list_view (String_score.score s)
 			in
-			let t = { t with
+			{ t with
 				bookmarks = put_view bookmark_section t.root_bookmarks;
 				cursor = Cursor.zero
-			} in
-			Js_utils.log t;
-			t
+			}
 
 	in
 

@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/27 10:33:59 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/12 23:42:28 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/06/22 22:37:50 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -45,7 +45,6 @@ let fold t initial_acc f =
 	let acc = ref initial_acc in
 	register t (fun v ->
 			let v = f !acc v in
-			Js_utils.log ("FOLD", v);
 			acc := v;
 			notify dst v
 		);
