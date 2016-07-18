@@ -6,14 +6,14 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/06/22 22:56:06 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/07/19 00:41:01 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
 open Result.Type
 
 type event_t =
-	| Bookmark_click of Bookmarks.folder_t
+	| Bookmark_click of Bookmark.t
 	| Arrow_key of [ `Left | `Right | `Up | `Down ]
 	| Enter_key
 	| Tab_key
@@ -59,15 +59,16 @@ let keydown_observable, keypress_observable =
 let root_observable = Observable.join [
 	keydown_observable;
 	keypress_observable;
-	Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f);
+	(* Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f); *)
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
 
 type t = {
-	root_bookmarks	:Bookmarks.t array;
-	bookmarks		:Bookmarks.t array;
-	cursor			:Cursor.t
+	bookmarks		:Bookmark_tree.t
 }
+
+(* TODO: reimplement click on bookmarks *)
+(* TODO: remove useless root folder *)
 
 let () =
 	let bookmark_section =
@@ -78,17 +79,17 @@ let () =
 	let main_loop t event =
 		match event with
 		| Bookmark_click b	->
-			Bookmarks.set_opened b (not b.Bookmarks.opened);
+			(* Bookmark.set_opened b (not b.Bookmark.opened); *)
 			t
 
 		| Arrow_key k		->
-			let f = match k with
-				| `Down			-> Cursor.select_next 1
-				| `Up			-> Cursor.select_next (-1)
-				| `Left			-> Cursor.select_parent
-				| `Right		-> Cursor.select_child
+			let dir = match k with
+				| `Down			-> `Next
+				| `Up			-> `Prev
+				| `Left			-> `Parent
+				| `Right		-> `Child
 			in
-			{ t with cursor = f t.bookmarks t.cursor }
+			{ bookmarks = Bookmark_tree.move_cursor t.bookmarks dir }
 
 		| Char_key c		->
 			Search_input.append c;
@@ -96,11 +97,11 @@ let () =
 			t
 
 		| Enter_key			->
-			begin match Cursor.get t.bookmarks t.cursor with
-			| Bookmarks.Folder _	-> ()
-			| Bookmarks.Leaf l		->
+			begin match Bookmark.data (Bookmark_tree.get_selected t.bookmarks) with
+			| Bookmark.Folder _	-> ()
+			| Bookmark.Leaf l		->
 				let props = object%js
-					val url = Js.string l.Bookmarks.url
+					val url = Js.string l.Bookmark.url
 				end in
 				Chrome.tabs##create props ignore
 			end;
@@ -108,46 +109,25 @@ let () =
 
 		| Tab_key			->
 			Search_input.focus ();
-			{ t with cursor = Cursor.zero }
+			{ bookmarks = Bookmark_tree.move_cursor t.bookmarks `Reset }
 
 		| Search_input s	->
 			let put_view =
 				if (String.length s) = 0 then
-					Bookmarks.put_folder_view
+					Bookmark_tree.put_folder_view
 				else
-					Bookmarks.put_list_view (String_score.score s)
+					Bookmark_tree.put_list_view (String_score.score s)
 			in
-			{ t with
-				bookmarks = put_view bookmark_section t.root_bookmarks;
-				cursor = Cursor.zero
-			}
+			{ bookmarks = put_view bookmark_section t.bookmarks }
 
 	in
 
-	let callback tree =
+	let callback bookmarks =
 		let t =
-			let tree =
-				let tree = Array.get (Js.to_array tree) 0 in
-				let tree = Js.Optdef.get tree##.children (fun () -> assert false) in
-				let tree = Array.map (Bookmarks.from_chrome_tree) (Js.to_array tree) in
-				let childs b =
-					match b with
-					| Bookmarks.Folder f	-> f.Bookmarks.childs
-					| _						-> assert false
-				in
-				let bookmarks_bar = childs (tree.(0)) in
-				let other_bookmarks =
-					let b = tree.(1) in
-					if Array.length (childs b) > 0 then [| b |] else [||]
-				in
-				Array.append bookmarks_bar other_bookmarks
-			in
+			let bookmarks = Bookmark_tree.of_chrome_tree bookmarks in
+			let bookmarks = Bookmark_tree.put_folder_view bookmark_section bookmarks in
 
-			{
-				root_bookmarks = tree;
-				bookmarks = Bookmarks.put_folder_view bookmark_section tree;
-				cursor = Cursor.zero
-			}
+			{ bookmarks }
 		in
 
 		Observable.fold root_observable t main_loop |> ignore
