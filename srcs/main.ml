@@ -6,7 +6,7 @@
 (*   By: jaguillo <jaguillo@student.42.fr>          +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/05/24 19:10:12 by jaguillo          #+#    #+#             *)
-(*   Updated: 2016/07/19 00:41:01 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/07/19 01:20:59 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -59,7 +59,7 @@ let keydown_observable, keypress_observable =
 let root_observable = Observable.join [
 	keydown_observable;
 	keypress_observable;
-	(* Observable.map Bookmarks.on_click_observable (fun f -> Bookmark_click f); *)
+	Observable.map Bookmark.on_click_observable (fun f -> Bookmark_click f);
 	Observable.map Search_input.search_observer (fun s -> Search_input s)
 ]
 
@@ -67,19 +67,25 @@ type t = {
 	bookmarks		:Bookmark_tree.t
 }
 
-(* TODO: reimplement click on bookmarks *)
-(* TODO: remove useless root folder *)
-
 let () =
 	let bookmark_section =
 		Js.Opt.get (Dom_html.CoerceTo.div (Dom_html.getElementById "bookmark_section"))
 			(fun () -> assert false)
 	in
 
-	let main_loop t event =
-		match event with
+	let open_bookmark b =
+		match Bookmark.data b with
+		| Bookmark.Folder f		-> Bookmark.set_opened b (not f.Bookmark.opened)
+		| Bookmark.Leaf l		->
+			let props = object%js
+				val url = Js.string l.Bookmark.url
+			end in
+			Chrome.tabs##create props ignore
+	in
+
+	let main_loop t = function
 		| Bookmark_click b	->
-			(* Bookmark.set_opened b (not b.Bookmark.opened); *)
+			open_bookmark b;
 			t
 
 		| Arrow_key k		->
@@ -97,14 +103,7 @@ let () =
 			t
 
 		| Enter_key			->
-			begin match Bookmark.data (Bookmark_tree.get_selected t.bookmarks) with
-			| Bookmark.Folder _	-> ()
-			| Bookmark.Leaf l		->
-				let props = object%js
-					val url = Js.string l.Bookmark.url
-				end in
-				Chrome.tabs##create props ignore
-			end;
+			open_bookmark (Bookmark_tree.get_selected t.bookmarks);
 			t
 
 		| Tab_key			->
@@ -119,11 +118,25 @@ let () =
 					Bookmark_tree.put_list_view (String_score.score s)
 			in
 			{ bookmarks = put_view bookmark_section t.bookmarks }
-
 	in
 
 	let callback bookmarks =
 		let t =
+			let get_childs b =
+				Js.Optdef.case b##.children (fun () -> assert false) Js.to_array
+			in
+			let bookmarks = Js.to_array bookmarks in
+			let bookmarks = get_childs bookmarks.(0) in
+			let bookmarks =
+				let other_bookmarks =
+					if Js.Optdef.case bookmarks.(1)##.children
+						(fun () -> false) (fun c -> c##.length > 0) then
+						 [| bookmarks.(1) |]
+					else
+						[| |]
+				in
+				Array.append (get_childs bookmarks.(0)) other_bookmarks
+			in
 			let bookmarks = Bookmark_tree.of_chrome_tree bookmarks in
 			let bookmarks = Bookmark_tree.put_folder_view bookmark_section bookmarks in
 

@@ -6,7 +6,7 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/07/18 22:20:56 by juloo             #+#    #+#             *)
-(*   Updated: 2016/07/19 00:40:33 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/07/19 00:52:20 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -36,6 +36,8 @@ let title node = !node.title
 let element node = !node.element
 let title_element node = !node.title_element
 let data node = !node.data
+
+let on_click_observable = Observable.create ()
 
 let rec of_chrome_tree_node map tree_node =
 
@@ -72,6 +74,11 @@ let rec of_chrome_tree_node map tree_node =
 		title_element;
 		data = Js.Optdef.case (tree_node##.url) create_folder create_leaf
 	} in
+
+	let on_click _ = Observable.notify on_click_observable node ; Js._true in
+	Dom_html.addEventListener title_element Dom_html.Event.click
+		(Dom_html.handler on_click) Js._false |> ignore;
+
 	Utils.StringMap.add map id node;
 	node
 

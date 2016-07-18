@@ -6,7 +6,7 @@
 (*   By: juloo <juloo@student.42.fr>                +#+  +:+       +#+        *)
 (*                                                +#+#+#+#+#+   +#+           *)
 (*   Created: 2016/07/18 23:16:11 by juloo             #+#    #+#             *)
-(*   Updated: 2016/07/19 00:38:56 by juloo            ###   ########.fr       *)
+(*   Updated: 2016/07/19 01:11:41 by juloo            ###   ########.fr       *)
 (*                                                                            *)
 (* ************************************************************************** *)
 
@@ -21,7 +21,7 @@ type t = {
 
 let of_chrome_tree tree = 
 	let map = Utils.StringMap.create 64 in
-	let root = Array.map (Bookmark.of_chrome_tree_node map) (Js.to_array tree) in
+	let root = Array.map (Bookmark.of_chrome_tree_node map) tree in
 	{
 		view = root;
 		cursor = Cursor.zero;
